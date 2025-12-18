@@ -1,0 +1,37 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.cache/
+.pytest_cache/
+.mypy_cache/
+.eggs/
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+
+# Project outputs
+/out/
+/audio/
+/*.mp4
+/*.wav
+/*.aac
+/*.flac
+/*.opus
+/*.mp3
+/*.pcm
+/*.ass
+
+# Logs / temp
+*.log
+*.tmp
