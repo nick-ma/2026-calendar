@@ -27,9 +27,9 @@ date,month_cn,month_en,lunar,solar_term,weekday_en,weekday_cn,day,main_text,foot
 python scripts/gen_png_frames.py \
   --csv data/calendar_2026.csv \
   --bg assets/bg01.jpg \
-  --out out/frames \
-  --font-cn /path/to/YourChineseFont.ttc \
-  --font-en /path/to/YourEnglishFont.ttf
+  --out out/frames_2026 \
+  --font-cn fonts/Songti.ttc \
+  --font-en fonts/Athelas.ttc
 ```
 Adjust `BOX` coordinates in `scripts/gen_png_frames.py` if your template background differs.
 

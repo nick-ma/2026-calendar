@@ -9,42 +9,59 @@ from PIL import Image, ImageDraw, ImageFont
 # 2K vertical 9:16 (QHD portrait)
 W, H = 1440, 2560
 
-BLUE = (18, 61, 150)
-TEXT = (25, 25, 25)
+BLUE = (100, 150, 255)  # Lighter blue for better visibility
+TEXT = (255, 255, 255)  # White for maximum contrast on dark background
+HEADER_COLOR = (220, 220, 255)  # Light blue-white for headers
 
 # Layout boxes in (x, y, w, h) for 1440x2560
-# Tune once to match your template exactly.
+# Layout based on reference: day number top-left, month info top-right, quote center, footer bottom
 BOX = {
-    "month_cn":   (120, 120,  700,  90),
-    "month_en":   (120, 210,  700, 110),
-    "lunar":      (120, 330,  900,  80),
-    "weekday":    (120, 410,  900,  80),
-    "day_big":    (880,  90,  480,  360),
-
-    # Middle long text area (your “image + quote” becomes pure text)
-    "main_text":  (120, 560,  1200, 1500),
-
-    "footer":     (120, 2160, 1200, 200),
+    # Top-left: Large red day number
+    "day_big":    (120, 120,  400,  400),
+    
+    # Top-right: Month and date info
+    "month_cn":   (800, 120,  520,  80),   # Chinese month
+    "month_en":   (800, 200,  520,  80),   # English month
+    "weekday":    (800, 280,  520,  70),   # Weekday
+    "lunar":      (800, 350,  520,  70),   # Lunar date
+    
+    # Center: Main quote text
+    "main_text":  (120, 600,  1200, 1400),
+    
+    # Bottom: Footer
+    "footer":     (120, 2300, 1200, 200),
 }
 
 def load_font(font_path: str, size: int, index: int = 0) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(font_path, size=size, index=index)
 
 def tokenize_mixed_text(s: str):
+    """Tokenize text while preserving spaces and word boundaries."""
     s = (s or "").replace("\r\n", "\n").replace("\r", "\n")
     tokens = []
     for para in s.split("\n"):
         if para == "":
             tokens.append("\n")
             continue
-        pieces = re.findall(r"[\u4e00-\u9fff]|[A-Za-z0-9]+|[^\sA-Za-z0-9\u4e00-\u9fff]", para)
-        tokens.extend(pieces)
+        # Split by whitespace but keep the spaces
+        # This regex matches: Chinese chars, English words, punctuation, or spaces
+        # We'll use a simpler approach: split by spaces and add them back
+        words = para.split(" ")
+        for i, word in enumerate(words):
+            if word:
+                # Split word into Chinese chars, English words, and punctuation
+                word_parts = re.findall(r"[\u4e00-\u9fff]+|[A-Za-z0-9]+|[^\sA-Za-z0-9\u4e00-\u9fff]+", word)
+                tokens.extend(word_parts)
+            # Add space after each word except the last one in the paragraph
+            if i < len(words) - 1:
+                tokens.append(" ")
         tokens.append("\n")
     if tokens:
-        tokens.pop()
+        tokens.pop()  # Remove trailing newline
     return tokens
 
 def wrap_tokens_to_width(draw: ImageDraw.ImageDraw, tokens, font, max_width: int):
+    """Wrap tokens to fit width while preserving spaces."""
     lines, cur = [], ""
 
     def text_w(t: str) -> int:
@@ -55,23 +72,31 @@ def wrap_tokens_to_width(draw: ImageDraw.ImageDraw, tokens, font, max_width: int
 
     for tok in tokens:
         if tok == "\n":
-            lines.append(cur.rstrip())
+            if cur.strip():  # Only add non-empty lines
+                lines.append(cur.rstrip())
             cur = ""
             continue
 
-        if cur == "" and tok == " ":
-            continue
-
-        cand = (cur + tok) if cur else tok
+        # Try adding the token to current line
+        cand = cur + tok if cur else tok
+        
+        # If it fits, add it
         if text_w(cand) <= max_width:
             cur = cand
             continue
 
-        if cur:
+        # Doesn't fit - need to wrap
+        if cur.strip():  # If current line has content, save it
             lines.append(cur.rstrip())
-            cur = tok.lstrip()
-        else:
-            # hard-break extremely long token
+            cur = ""
+        
+        # Handle the token that doesn't fit
+        if tok == " ":  # If it's just a space, skip it
+            continue
+        
+        # Check if token itself is too long (hard break)
+        if text_w(tok) > max_width:
+            # Break long token character by character
             buf = ""
             for ch in tok:
                 c2 = buf + ch
@@ -82,12 +107,16 @@ def wrap_tokens_to_width(draw: ImageDraw.ImageDraw, tokens, font, max_width: int
                         lines.append(buf)
                     buf = ch
             cur = buf
+        else:
+            # Token fits on its own, start new line
+            cur = tok
 
-    if cur != "":
+    # Add remaining content
+    if cur.strip():
         lines.append(cur.rstrip())
 
-    while lines and lines[-1] == "":
-        lines.pop()
+    # Remove empty lines
+    lines = [line for line in lines if line.strip()]
 
     return lines
 
@@ -137,18 +166,22 @@ def draw_lines(img, box, lines, font, fill, align="left", line_spacing=10):
 
     yy = y
     for line in lines:
+        if not line.strip():  # Skip empty lines
+            continue
         if yy + line_h > y + h:
             break
         if align == "right":
             b = draw.textbbox((0, 0), line, font=font)
             tw = b[2] - b[0]
-            xx = x + w - tw
+            xx = max(x, x + w - tw)  # Ensure xx >= x
         elif align == "center":
             b = draw.textbbox((0, 0), line, font=font)
             tw = b[2] - b[0]
-            xx = x + (w - tw) // 2
+            xx = x + max(0, (w - tw) // 2)  # Ensure xx >= x
         else:
             xx = x
+        # Use textbbox to get proper y position including baseline
+        bbox = draw.textbbox((xx, yy), line, font=font)
         draw.text((xx, yy), line, font=font, fill=fill)
         yy += line_h
 
@@ -157,44 +190,69 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
     bg = Image.open(bg_path).convert("RGB").resize((W, H))
     draw = ImageDraw.Draw(bg)
 
-    # Fonts (tune sizes as you like)
-    f_month_cn = load_font(font_cn, 56, font_index_cn)
-    f_month_en = load_font(font_en, 76, font_index_en)
-    f_small_cn = load_font(font_cn, 50, font_index_cn)
-    f_small_en = load_font(font_en, 50, font_index_en)
-    f_day_big  = load_font(font_en, 280, font_index_en)
+    # Fonts - adjusted sizes for the new layout
+    f_month_cn = load_font(font_cn, 56, font_index_cn)  # Chinese month
+    f_month_en = load_font(font_en, 48, font_index_en)  # English month
+    f_small_cn = load_font(font_cn, 40, font_index_cn)  # For weekday and lunar
+    f_small_en = load_font(font_en, 40, font_index_en)  # For weekday
+    f_day_big  = load_font(font_en, 320, font_index_en)  # Large day number
 
     def as_lines(s): return [str(s or "").strip()]
 
-    draw_lines(bg, BOX["month_cn"], as_lines(row.get("month_cn","")), f_month_cn, BLUE)
-    draw_lines(bg, BOX["month_en"], as_lines(row.get("month_en","")), f_month_en, BLUE)
+    # Draw large day number in top-left
+    day = str(row.get("day","") or "").strip()
+    if day:
+        draw_lines(bg, BOX["day_big"], [day], f_day_big, HEADER_COLOR, align="left", line_spacing=0)
 
+    # Draw month info in top-right - separate Chinese and English
+    month_cn = (row.get("month_cn","") or "").strip()
+    if month_cn:
+        draw_lines(bg, BOX["month_cn"], as_lines(month_cn), f_month_cn, HEADER_COLOR, align="right")
+    
+    month_en = (row.get("month_en","") or "").strip()
+    if month_en:
+        month_en_short = month_en[:3].upper() + "." if len(month_en) >= 3 else month_en
+        draw_lines(bg, BOX["month_en"], as_lines(month_en_short), f_month_en, HEADER_COLOR, align="right")
+
+    # Draw weekday
+    weekday_en = (row.get('weekday_en','') or '').strip()
+    weekday_cn = (row.get('weekday_cn','') or '').strip()
+    weekday_line = weekday_cn if weekday_cn else weekday_en
+    if weekday_line:
+        draw_lines(bg, BOX["weekday"], as_lines(weekday_line), f_small_cn, HEADER_COLOR, align="right")
+
+    # Draw lunar date
     lunar = (row.get("lunar","") or "").strip()
     solar = (row.get("solar_term","") or "").strip()
-    lunar_line = lunar if not solar else f"{lunar} · {solar}"
-    draw_lines(bg, BOX["lunar"], as_lines(lunar_line), f_small_cn, BLUE)
-
-    weekday = f"{(row.get('weekday_en','') or '').strip()}  {(row.get('weekday_cn','') or '').strip()}".strip()
-    draw_lines(bg, BOX["weekday"], as_lines(weekday), f_small_en, BLUE)
-
-    day = str(row.get("day","") or "").strip()
-    draw_lines(bg, BOX["day_big"], [day], f_day_big, BLUE, align="right", line_spacing=0)
+    lunar_line = f"农历 {lunar}" if lunar else ""
+    if solar:
+        lunar_line = f"{lunar_line} · {solar}" if lunar_line else solar
+    if lunar_line:
+        draw_lines(bg, BOX["lunar"], as_lines(lunar_line), f_small_cn, HEADER_COLOR, align="right")
 
     # Main long text: wrap + auto-fit
     x, y, w, h = BOX["main_text"]
     main_text = (row.get("main_text","") or "").strip()
+    
+    # Determine if text is primarily Chinese or English
+    chinese_chars = sum(1 for c in main_text if '\u4e00' <= c <= '\u9fff')
+    is_chinese = chinese_chars > len(main_text) * 0.3
+    
+    font_path = font_cn if is_chinese else font_en
+    font_index = font_index_cn if is_chinese else font_index_en
+    
     main_font, main_lines = fit_text_in_box(
-        draw, main_text, font_path=font_cn, font_index=font_index_cn,
+        draw, main_text, font_path=font_path, font_index=font_index,
         box_w=w, box_h=h,
-        start_size=72, min_size=34,
-        line_spacing=22
+        start_size=72, min_size=42,  # Larger for better readability
+        line_spacing=40  # More spacing for better readability
     )
-    draw_lines(bg, BOX["main_text"], main_lines, main_font, TEXT, align="left", line_spacing=22)
+    draw_lines(bg, BOX["main_text"], main_lines, main_font, TEXT, align="left", line_spacing=40)
 
     footer = (row.get("footer","") or "").strip()
     if footer:
-        f_footer = load_font(font_cn, 44, font_index_cn)
-        draw_lines(bg, BOX["footer"], [footer], f_footer, BLUE, align="center", line_spacing=10)
+        f_footer = load_font(font_cn, 40, font_index_cn)
+        draw_lines(bg, BOX["footer"], [footer], f_footer, HEADER_COLOR, align="center", line_spacing=10)
 
     return bg
 
