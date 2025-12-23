@@ -17,7 +17,7 @@ HEADER_COLOR = (220, 220, 255)  # Light blue-white for headers
 # Layout based on reference: day number top-left, month info top-right, quote center, footer bottom
 BOX = {
     # Top-left: Large red day number
-    "day_big":    (120, 120,  400,  400),
+    "day_big":    (120, 120,  500,  500),
     
     # Top-right: Month and date info
     "month_cn":   (800, 120,  520,  80),   # Chinese month
@@ -193,16 +193,16 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
     # Fonts - adjusted sizes for the new layout
     f_month_cn = load_font(font_cn, 56, font_index_cn)  # Chinese month
     f_month_en = load_font(font_en, 48, font_index_en)  # English month
-    f_small_cn = load_font(font_cn, 40, font_index_cn)  # For weekday and lunar
-    f_small_en = load_font(font_en, 40, font_index_en)  # For weekday
-    f_day_big  = load_font(font_en, 320, font_index_en)  # Large day number
+    f_small_cn = load_font(font_cn, 80, font_index_cn)  # For weekday and lunar
+    f_small_en = load_font(font_en, 80, font_index_en)  # For weekday
+    f_day_big  = load_font(font_en, 400, font_index_en)  # Large day number
 
     def as_lines(s): return [str(s or "").strip()]
 
     # Draw large day number in top-left
     day = str(row.get("day","") or "").strip()
     if day:
-        draw_lines(bg, BOX["day_big"], [day], f_day_big, HEADER_COLOR, align="left", line_spacing=0)
+        draw_lines(bg, BOX["day_big"], [day], f_day_big, HEADER_COLOR, align="center", line_spacing=0)
 
     # Draw month info in top-right - separate Chinese and English
     month_cn = (row.get("month_cn","") or "").strip()
