@@ -193,8 +193,8 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
     # Fonts - adjusted sizes for the new layout
     f_month_cn = load_font(font_cn, 56, font_index_cn)  # Chinese month
     f_month_en = load_font(font_en, 48, font_index_en)  # English month
-    f_small_cn = load_font(font_cn, 80, font_index_cn)  # For weekday and lunar
-    f_small_en = load_font(font_en, 80, font_index_en)  # For weekday
+    f_small_cn = load_font(font_cn, 40, font_index_cn)  # For weekday and lunar
+    f_small_en = load_font(font_en, 40, font_index_en)  # For weekday
     f_day_big  = load_font(font_en, 400, font_index_en)  # Large day number
 
     def as_lines(s): return [str(s or "").strip()]
@@ -211,8 +211,7 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
     
     month_en = (row.get("month_en","") or "").strip()
     if month_en:
-        month_en_short = month_en[:3].upper() + "." if len(month_en) >= 3 else month_en
-        draw_lines(bg, BOX["month_en"], as_lines(month_en_short), f_month_en, HEADER_COLOR, align="right")
+        draw_lines(bg, BOX["month_en"], as_lines(month_en), f_month_en, HEADER_COLOR, align="right")
 
     # Draw weekday
     weekday_en = (row.get('weekday_en','') or '').strip()
