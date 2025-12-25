@@ -25,6 +25,9 @@ BOX = {
     "weekday":    (800, 280,  520,  70),   # Weekday
     "lunar":      (800, 350,  520,  70),   # Lunar date
     
+    # Center: Year display
+    "year":       (120, 500,  1200, 100),  # Year in center-top
+    
     # Center: Main quote text
     "main_text":  (120, 600,  1200, 1400),
     
@@ -180,8 +183,6 @@ def draw_lines(img, box, lines, font, fill, align="left", line_spacing=10):
             xx = x + max(0, (w - tw) // 2)  # Ensure xx >= x
         else:
             xx = x
-        # Use textbbox to get proper y position including baseline
-        bbox = draw.textbbox((xx, yy), line, font=font)
         draw.text((xx, yy), line, font=font, fill=fill)
         yy += line_h
 
@@ -196,6 +197,7 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
     f_small_cn = load_font(font_cn, 40, font_index_cn)  # For weekday and lunar
     f_small_en = load_font(font_en, 40, font_index_en)  # For weekday
     f_day_big  = load_font(font_en, 400, font_index_en)  # Large day number
+    f_year     = load_font(font_en, 120, font_index_en)  # Year display
 
     def as_lines(s): return [str(s or "").strip()]
 
@@ -228,6 +230,17 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
         lunar_line = f"{lunar_line} · {solar}" if lunar_line else solar
     if lunar_line:
         draw_lines(bg, BOX["lunar"], as_lines(lunar_line), f_small_cn, HEADER_COLOR, align="right")
+
+    # Draw year in center-top
+    date_str = (row.get("date","") or "").strip()
+    if date_str:
+        # Extract year from date string (format: YYYY-MM-DD)
+        try:
+            year = date_str.split("-")[0]
+            if year and len(year) == 4:
+                draw_lines(bg, BOX["year"], as_lines(year), f_year, HEADER_COLOR, align="center", line_spacing=0)
+        except (IndexError, ValueError):
+            pass
 
     # Main long text: wrap + auto-fit
     x, y, w, h = BOX["main_text"]
