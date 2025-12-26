@@ -14,10 +14,10 @@ TEXT = (255, 255, 255)  # White for maximum contrast on dark background
 HEADER_COLOR = (220, 220, 255)  # Light blue-white for headers
 
 # Layout boxes in (x, y, w, h) for 1440x2560
-# Layout based on reference: day number top-left, month info top-right, quote center, footer bottom
+# Layout: day number top-left, month info top-right, year center, quote below, footer bottom
 BOX = {
-    # Top-left: Large red day number
-    "day_big":    (120, 120,  500,  500),
+    # Top-left: Large day number
+    "day_big":    (120, 120,  450,  450),  # Increased height to fit large font
     
     # Top-right: Month and date info
     "month_cn":   (800, 120,  520,  80),   # Chinese month
@@ -25,11 +25,11 @@ BOX = {
     "weekday":    (800, 280,  520,  70),   # Weekday
     "lunar":      (800, 350,  520,  70),   # Lunar date
     
-    # Center: Year display
-    "year":       (120, 500,  1200, 100),  # Year in center-top
+    # Center-top: Year display (below day_big and month info)
+    "year":       (120, 600,  1200, 180),  # Year centered, increased height to fit font
     
     # Center: Main quote text
-    "main_text":  (120, 600,  1200, 1400),
+    "main_text":  (120, 800,  1200, 1400),  # Adjusted to start below year
     
     # Bottom: Footer
     "footer":     (120, 2300, 1200, 200),
@@ -167,10 +167,21 @@ def draw_lines(img, box, lines, font, fill, align="left", line_spacing=10):
     ascent, descent = font.getmetrics()
     line_h = ascent + descent + line_spacing
 
-    yy = y
+    # Calculate total height of all lines
+    total_text_h = len(lines) * line_h
+    
+    # For vertical centering: only if text fits in box and we have content
+    if len(lines) > 0 and total_text_h < h and line_h <= h:
+        yy = y + (h - total_text_h) // 2
+    else:
+        yy = y
+
     for line in lines:
         if not line.strip():  # Skip empty lines
             continue
+        # Ensure yy is within box bounds
+        if yy < y:
+            yy = y
         if yy + line_h > y + h:
             break
         if align == "right":
@@ -196,8 +207,8 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
     f_month_en = load_font(font_en, 48, font_index_en)  # English month
     f_small_cn = load_font(font_cn, 40, font_index_cn)  # For weekday and lunar
     f_small_en = load_font(font_en, 40, font_index_en)  # For weekday
-    f_day_big  = load_font(font_en, 400, font_index_en)  # Large day number
-    f_year     = load_font(font_en, 120, font_index_en)  # Year display
+    f_day_big  = load_font(font_en, 380, font_index_en)  # Large day number (slightly smaller)
+    f_year     = load_font(font_en, 140, font_index_en)  # Year display (larger for visibility)
 
     def as_lines(s): return [str(s or "").strip()]
 
@@ -238,7 +249,9 @@ def render_one(row: dict, bg_path: str, font_cn: str, font_en: str,
         try:
             year = date_str.split("-")[0]
             if year and len(year) == 4:
-                draw_lines(bg, BOX["year"], as_lines(year), f_year, HEADER_COLOR, align="center", line_spacing=0)
+                # Draw year centered, with proper vertical centering in box
+                year_lines = as_lines(year)
+                draw_lines(bg, BOX["year"], year_lines, f_year, HEADER_COLOR, align="center", line_spacing=0)
         except (IndexError, ValueError):
             pass
 
