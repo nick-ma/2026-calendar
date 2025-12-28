@@ -69,3 +69,5 @@ Key options:
 - `--pad 1`: letterbox/pillarbox to keep aspect ratio
 
 Outputs land in `audio/` and `out/` (both ignored by git).
+
+Lanch on Jan 1, 2026
