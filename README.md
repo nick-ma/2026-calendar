@@ -3,16 +3,16 @@
 Toolkit for generating a 9:16 portrait 2026 calendar: render daily PNG frames from a CSV, synthesize narration with OpenAI TTS, and wrap an image + text + audio into short MP4 clips.
 
 ## Requirements
-- Python 3.10+ with `openai` and `Pillow`
+- Python 3.10+ with `openai`, `Pillow`, and `PyYAML`
 - `ffmpeg` available on `PATH`
-- Fonts: one Chinese font (`--font-cn`) and one Latin font (`--font-en`)
+- Fonts: one Chinese font and one Latin font (configured in `config.yaml` or via command line)
 - OpenAI API key in `OPENAI_API_KEY`
 
 Install the Python deps (optional virtualenv recommended):
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install --upgrade pip
-pip install openai pillow
+pip install openai pillow pyyaml
 ```
 
 ## Data input
@@ -23,15 +23,21 @@ date,month_cn,month_en,lunar,solar_term,weekday_en,weekday_cn,day,main_text,foot
 `date` is used as the filename stem (`2026-01-01` → `2026-01-01.png` / `.wav`). `main_text` is the long paragraph rendered in the center block.
 
 ## Generate PNG frames
+
+First, create or edit `config.yaml` to configure styles, colors, layout boxes, and font settings. See `config.yaml` for the complete configuration structure.
+
+Then run:
 ```bash
 python scripts/gen_png_frames.py \
   --csv data/calendar_2026.csv \
   --bg assets/bg01.jpg \
   --out out/frames_2026 \
+  --config config.yaml \
   --font-cn fonts/Songti.ttc \
   --font-en fonts/Athelas.ttc
 ```
-Adjust `BOX` coordinates in `scripts/gen_png_frames.py` if your template background differs.
+
+Font paths can be set in `config.yaml` or overridden via `--font-cn` and `--font-en` command line arguments. Adjust layout boxes, colors, and font sizes in `config.yaml` to match your template background.
 
 ## Text-to-speech audio
 Single file:

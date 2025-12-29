@@ -1,0 +1,115 @@
+# Calendar Frame Generation Configuration
+# All styling, layout, and font settings can be customized here
+
+# Canvas dimensions (2K vertical 9:16 QHD portrait)
+canvas:
+  width: 1440
+  height: 2560
+
+# Color definitions (RGB values: [R, G, B])
+# These colors can be referenced by name in field configurations
+colors:
+  blue: [100, 150, 255]      # Lighter blue (currently unused, available for custom use)
+  text: [255, 255, 255]      # White for main text
+  header: [220, 220, 255]    # Light blue-white for headers
+
+# Font paths and indices
+# Font paths can be set here or overridden via command line arguments
+# For .ttc files, use index to select a specific font face (0 is usually the first)
+fonts:
+  chinese:
+    path: ""  # Set font path here or via --font-cn command line argument
+    index: 0  # Font face index for .ttc files (usually 0)
+  english:
+    path: ""  # Set font path here or via --font-en command line argument
+    index: 0  # Font face index for .ttc files (usually 0)
+
+# Layout boxes: [x, y, width, height] in pixels
+# x, y: top-left corner position
+# width, height: dimensions of the text box
+layout:
+  day_big:      # Large day number (top-left)
+    box: [120, 120, 450, 450]
+  month_cn:     # Chinese month name (top-right)
+    box: [800, 120, 520, 80]
+  month_en:     # English month name (top-right, below Chinese)
+    box: [800, 200, 520, 80]
+  weekday:      # Weekday (top-right, below month)
+    box: [800, 280, 520, 70]
+  lunar:        # Lunar date and solar term (top-right, below weekday)
+    box: [800, 350, 520, 70]
+  year:         # Year display (center-top)
+    box: [120, 600, 1200, 180]
+  main_text:    # Main quote/text content (center, largest area)
+    box: [120, 800, 1200, 1400]
+  footer:       # Footer text (bottom)
+    box: [120, 2300, 1200, 200]
+
+# Field-specific styling
+# Each field can have its own font, color, alignment, and spacing settings
+fields:
+  day_big:      # Large day number styling
+    font:
+      type: english  # Options: "chinese", "english", or "auto" (for main_text only)
+      size: 380      # Font size in points
+    color: header    # Color name from colors section above
+    align: center    # Text alignment: "left", "center", or "right"
+    line_spacing: 0  # Additional spacing between lines (in pixels)
+  
+  month_cn:     # Chinese month name styling
+    font:
+      type: chinese
+      size: 56
+    color: header
+    align: right
+    line_spacing: 10
+  
+  month_en:     # English month name styling
+    font:
+      type: english
+      size: 48
+    color: header
+    align: right
+    line_spacing: 10
+  
+  weekday:      # Weekday styling
+    font:
+      type: chinese
+      size: 40
+    color: header
+    align: right
+    line_spacing: 10
+  
+  lunar:        # Lunar date and solar term styling
+    font:
+      type: chinese
+      size: 40
+    color: header
+    align: right
+    line_spacing: 10
+  
+  year:         # Year display styling
+    font:
+      type: english
+      size: 140
+    color: header
+    align: center
+    line_spacing: 0
+  
+  main_text:    # Main quote/text styling (supports auto-fit)
+    font:
+      type: auto      # "auto" automatically detects Chinese/English content
+      size: 72        # Starting font size for auto-fit algorithm
+      min_size: 42    # Minimum font size when text doesn't fit
+    color: text
+    align: left
+    line_spacing: 40  # More spacing for better readability
+  
+  footer:       # Footer text styling
+    font:
+      type: chinese
+      size: 40
+    color: header
+    align: center
+    line_spacing: 10
+
