@@ -29,7 +29,7 @@ fonts:
 # width, height: dimensions of the text box
 layout:
   day_big:      # Large day number (top-left)
-    box: [120, 120, 450, 450]
+    box: [80, 80, 450, 450]
   month_cn:     # Chinese month name (top-right)
     box: [800, 120, 520, 80]
   month_en:     # English month name (top-right, below Chinese)
@@ -39,7 +39,7 @@ layout:
   lunar:        # Lunar date and solar term (top-right, below weekday)
     box: [800, 350, 520, 70]
   year:         # Year display (center-top)
-    box: [120, 600, 1200, 180]
+    box: [120, 100, 1200, 180]
   main_text:    # Main quote/text content (center, largest area)
     box: [120, 800, 1200, 1400]
   footer:       # Footer text (bottom)
