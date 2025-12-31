@@ -5,7 +5,7 @@ Toolkit for generating a 9:16 portrait 2026 calendar: render daily PNG frames fr
 ## Requirements
 - Python 3.10+ with `openai`, `Pillow`, and `PyYAML`
 - `ffmpeg` available on `PATH`
-- Fonts: one Chinese font and one Latin font (configured in `config.yaml` or via command line)
+- Font: one font file (configured in `config.yaml` or via command line)
 - OpenAI API key in `OPENAI_API_KEY`
 
 Install the Python deps (optional virtualenv recommended):
@@ -18,9 +18,9 @@ pip install openai pillow pyyaml
 ## Data input
 Populate `data/calendar_2026.csv` with UTF-8 rows containing at least:
 ```
-date,month_cn,month_en,lunar,solar_term,weekday_en,weekday_cn,day,main_text,footer
+date,month,weekday,day,constellation,horoscope,main_text,footer
 ```
-`date` is used as the filename stem (`2026-01-01` → `2026-01-01.png` / `.wav`). `main_text` is the long paragraph rendered in the center block.
+`date` is used as the filename stem (`2026-01-01` → `2026-01-01.png` / `.wav`). `main_text` is the long paragraph rendered in the center block. `constellation` is the zodiac sign, and `horoscope` is the daily fortune text.
 
 ## Generate PNG frames
 
@@ -33,11 +33,10 @@ python scripts/gen_png_frames.py \
   --bg assets/bg01.jpg \
   --out out/frames_2026 \
   --config config.yaml \
-  --font-cn fonts/Songti.ttc \
-  --font-en fonts/Athelas.ttc
+  --font fonts/Athelas.ttc
 ```
 
-Font paths can be set in `config.yaml` or overridden via `--font-cn` and `--font-en` command line arguments. Adjust layout boxes, colors, and font sizes in `config.yaml` to match your template background.
+Font path can be set in `config.yaml` or overridden via `--font` command line argument. Adjust layout boxes, colors, and font sizes in `config.yaml` to match your template background.
 
 ## Text-to-speech audio
 Single file:

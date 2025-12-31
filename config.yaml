@@ -13,101 +13,90 @@ colors:
   text: [255, 255, 255]      # White for main text
   header: [220, 220, 255]    # Light blue-white for headers
 
-# Font paths and indices
-# Font paths can be set here or overridden via command line arguments
+# Font path and index
+# Font path can be set here or overridden via command line argument
 # For .ttc files, use index to select a specific font face (0 is usually the first)
 fonts:
-  chinese:
-    path: ""  # Set font path here or via --font-cn command line argument
-    index: 0  # Font face index for .ttc files (usually 0)
-  english:
-    path: ""  # Set font path here or via --font-en command line argument
-    index: 0  # Font face index for .ttc files (usually 0)
+  path: ""  # Set font path here or via --font command line argument
+  index: 0  # Font face index for .ttc files (usually 0)
 
 # Layout boxes: [x, y, width, height] in pixels
 # x, y: top-left corner position
 # width, height: dimensions of the text box
 layout:
-  day_big:      # Large day number (top-left)
-    box: [80, 80, 450, 450]
-  month_cn:     # Chinese month name (top-right)
-    box: [800, 120, 520, 80]
-  month_en:     # English month name (top-right, below Chinese)
-    box: [800, 200, 520, 80]
-  weekday:      # Weekday (top-right, below month)
-    box: [800, 280, 520, 70]
-  lunar:        # Lunar date and solar term (top-right, below weekday)
-    box: [800, 350, 520, 70]
-  year:         # Year display (center-top)
+  day_big:        # Large day number (top-left)
+    box: [80, 80, 512, 512]
+  month:          # Month name (top-right)
+    box: [800, 120, 520, 100]
+  weekday:        # Weekday (top-right, below month)
+    box: [800, 230, 520, 70]
+  constellation:  # Zodiac constellation (top-right, below weekday)
+    box: [800, 310, 520, 70]
+  year:           # Year display (center-top)
     box: [120, 100, 1200, 180]
-  main_text:    # Main quote/text content (center, largest area)
-    box: [120, 800, 1200, 1400]
-  footer:       # Footer text (bottom)
+  horoscope:      # Daily horoscope/fortune (below year, above main_text)
+    box: [120, 300, 1200, 250]
+  main_text:      # Main quote/text content (center, largest area)
+    box: [120, 600, 1200, 1400]
+  footer:         # Footer text (bottom)
     box: [120, 2300, 1200, 200]
 
 # Field-specific styling
-# Each field can have its own font, color, alignment, and spacing settings
+# Each field can have its own font size, color, alignment, and spacing settings
 fields:
-  day_big:      # Large day number styling
+  day_big:        # Large day number styling
     font:
-      type: english  # Options: "chinese", "english", or "auto" (for main_text only)
-      size: 380      # Font size in points
-    color: header    # Color name from colors section above
-    align: center    # Text alignment: "left", "center", or "right"
+      size: 450   # Font size in points
+    color: header # Color name from colors section above
+    align: center # Text alignment: "left", "center", or "right"
     line_spacing: 0  # Additional spacing between lines (in pixels)
   
-  month_cn:     # Chinese month name styling
+  month:          # Month name styling
     font:
-      type: chinese
-      size: 56
+      size: 72
     color: header
     align: right
     line_spacing: 10
   
-  month_en:     # English month name styling
+  weekday:        # Weekday styling
     font:
-      type: english
-      size: 48
-    color: header
-    align: right
-    line_spacing: 10
-  
-  weekday:      # Weekday styling
-    font:
-      type: chinese
       size: 40
     color: header
     align: right
     line_spacing: 10
   
-  lunar:        # Lunar date and solar term styling
+  constellation:  # Zodiac constellation styling
     font:
-      type: chinese
-      size: 40
+      size: 44
     color: header
     align: right
     line_spacing: 10
   
-  year:         # Year display styling
+  horoscope:      # Daily horoscope/fortune styling
     font:
-      type: english
+      size: 56        # Starting font size for auto-fit
+      min_size: 36   # Minimum font size
+    color: header
+    align: left
+    line_spacing: 20
+  
+  year:           # Year display styling
+    font:
       size: 140
     color: header
-    align: center
+    align: right
     line_spacing: 0
   
-  main_text:    # Main quote/text styling (supports auto-fit)
+  main_text:      # Main quote/text styling (supports auto-fit)
     font:
-      type: auto      # "auto" automatically detects Chinese/English content
-      size: 72        # Starting font size for auto-fit algorithm
-      min_size: 42    # Minimum font size when text doesn't fit
+      size: 96        # Starting font size for auto-fit algorithm
+      min_size: 48    # Minimum font size when text doesn't fit
     color: text
     align: left
     line_spacing: 40  # More spacing for better readability
   
-  footer:       # Footer text styling
+  footer:         # Footer text styling
     font:
-      type: chinese
       size: 40
     color: header
     align: center

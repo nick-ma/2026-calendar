@@ -201,35 +201,25 @@ def render_one(row: dict, bg_path: str, config: Dict[str, Any]) -> Image.Image:
     W = canvas.get('width', 1440)
     H = canvas.get('height', 2560)
     
-    # Get font paths and indices
+    # Get font path and index
     fonts_config = config.get('fonts', {})
-    font_cn = fonts_config.get('chinese', {}).get('path', '')
-    font_en = fonts_config.get('english', {}).get('path', '')
-    font_index_cn = fonts_config.get('chinese', {}).get('index', 0)
-    font_index_en = fonts_config.get('english', {}).get('index', 0)
+    font_path = fonts_config.get('path', '')
+    font_index = fonts_config.get('index', 0)
     
-    if not font_cn or not font_en:
-        raise ValueError("Font paths must be set in config or via command line")
+    if not font_path:
+        raise ValueError("Font path must be set in config or via command line")
     
     bg = Image.open(bg_path).convert("RGB").resize((W, H))
     draw = ImageDraw.Draw(bg)
 
     def as_lines(s): return [str(s or "").strip()]
     
-    def get_font(field_name: str, font_type_override: str = None):
+    def get_font(field_name: str):
         """Get font for a field based on configuration."""
         field_config = get_field_config(config, field_name)
         font_config = field_config.get('font', {})
-        font_type = font_type_override or font_config.get('type', 'english')
         font_size = font_config.get('size', 40)
-        
-        if font_type == 'chinese':
-            return load_font(font_cn, font_size, font_index_cn)
-        elif font_type == 'english':
-            return load_font(font_en, font_size, font_index_en)
-        else:
-            # Default to english
-            return load_font(font_en, font_size, font_index_en)
+        return load_font(font_path, font_size, font_index)
 
     # Draw large day number in top-left
     day = str(row.get("day","") or "").strip()
@@ -242,54 +232,38 @@ def render_one(row: dict, bg_path: str, config: Dict[str, Any]) -> Image.Image:
         font = get_font('day_big')
         draw_lines(bg, box, [day], font, color, align=align, line_spacing=line_spacing)
 
-    # Draw month info in top-right - separate Chinese and English
-    month_cn = (row.get("month_cn","") or "").strip()
-    if month_cn:
-        field_config = get_field_config(config, 'month_cn')
-        box = get_box(config, 'month_cn')
+    # Draw month info in top-right
+    month = (row.get("month","") or "").strip()
+    if month:
+        field_config = get_field_config(config, 'month')
+        box = get_box(config, 'month')
         color = get_color(config, field_config.get('color', 'header'))
         align = field_config.get('align', 'right')
         line_spacing = field_config.get('line_spacing', 10)
-        font = get_font('month_cn')
-        draw_lines(bg, box, as_lines(month_cn), font, color, align=align, line_spacing=line_spacing)
-    
-    month_en = (row.get("month_en","") or "").strip()
-    if month_en:
-        field_config = get_field_config(config, 'month_en')
-        box = get_box(config, 'month_en')
-        color = get_color(config, field_config.get('color', 'header'))
-        align = field_config.get('align', 'right')
-        line_spacing = field_config.get('line_spacing', 10)
-        font = get_font('month_en')
-        draw_lines(bg, box, as_lines(month_en), font, color, align=align, line_spacing=line_spacing)
+        font = get_font('month')
+        draw_lines(bg, box, as_lines(month), font, color, align=align, line_spacing=line_spacing)
 
     # Draw weekday
-    weekday_en = (row.get('weekday_en','') or '').strip()
-    weekday_cn = (row.get('weekday_cn','') or '').strip()
-    weekday_line = weekday_cn if weekday_cn else weekday_en
-    if weekday_line:
+    weekday = (row.get('weekday','') or '').strip()
+    if weekday:
         field_config = get_field_config(config, 'weekday')
         box = get_box(config, 'weekday')
         color = get_color(config, field_config.get('color', 'header'))
         align = field_config.get('align', 'right')
         line_spacing = field_config.get('line_spacing', 10)
         font = get_font('weekday')
-        draw_lines(bg, box, as_lines(weekday_line), font, color, align=align, line_spacing=line_spacing)
+        draw_lines(bg, box, as_lines(weekday), font, color, align=align, line_spacing=line_spacing)
 
-    # Draw lunar date
-    lunar = (row.get("lunar","") or "").strip()
-    solar = (row.get("solar_term","") or "").strip()
-    lunar_line = f"农历 {lunar}" if lunar else ""
-    if solar:
-        lunar_line = f"{lunar_line} · {solar}" if lunar_line else solar
-    if lunar_line:
-        field_config = get_field_config(config, 'lunar')
-        box = get_box(config, 'lunar')
+    # Draw constellation
+    constellation = (row.get("constellation","") or "").strip()
+    if constellation:
+        field_config = get_field_config(config, 'constellation')
+        box = get_box(config, 'constellation')
         color = get_color(config, field_config.get('color', 'header'))
         align = field_config.get('align', 'right')
         line_spacing = field_config.get('line_spacing', 10)
-        font = get_font('lunar')
-        draw_lines(bg, box, as_lines(lunar_line), font, color, align=align, line_spacing=line_spacing)
+        font = get_font('constellation')
+        draw_lines(bg, box, as_lines(constellation), font, color, align=align, line_spacing=line_spacing)
 
     # Draw year in center-top
     date_str = (row.get("date","") or "").strip()
@@ -301,13 +275,35 @@ def render_one(row: dict, bg_path: str, config: Dict[str, Any]) -> Image.Image:
                 field_config = get_field_config(config, 'year')
                 box = get_box(config, 'year')
                 color = get_color(config, field_config.get('color', 'header'))
-                align = field_config.get('align', 'center')
+                align = field_config.get('align', 'right')
                 line_spacing = field_config.get('line_spacing', 0)
                 font = get_font('year')
                 year_lines = as_lines(year)
                 draw_lines(bg, box, year_lines, font, color, align=align, line_spacing=line_spacing)
         except (IndexError, ValueError):
             pass
+
+    # Draw horoscope/daily fortune
+    horoscope = (row.get("horoscope","") or row.get("daily_fortune","") or "").strip()
+    if horoscope:
+        field_config = get_field_config(config, 'horoscope')
+        box = get_box(config, 'horoscope')
+        _, _, w, h = box
+        color = get_color(config, field_config.get('color', 'header'))
+        align = field_config.get('align', 'left')
+        line_spacing = field_config.get('line_spacing', 20)
+        font_config = field_config.get('font', {})
+        
+        start_size = font_config.get('size', 56)
+        min_size = font_config.get('min_size', 36)
+        
+        horoscope_font, horoscope_lines = fit_text_in_box(
+            draw, horoscope, font_path=font_path, font_index=font_index,
+            box_w=w, box_h=h,
+            start_size=start_size, min_size=min_size,
+            line_spacing=line_spacing
+        )
+        draw_lines(bg, box, horoscope_lines, horoscope_font, color, align=align, line_spacing=line_spacing)
 
     # Main long text: wrap + auto-fit
     box = get_box(config, 'main_text')
@@ -317,23 +313,8 @@ def render_one(row: dict, bg_path: str, config: Dict[str, Any]) -> Image.Image:
     field_config = get_field_config(config, 'main_text')
     font_config = field_config.get('font', {})
     
-    # Determine if text is primarily Chinese or English
-    chinese_chars = sum(1 for c in main_text if '\u4e00' <= c <= '\u9fff')
-    is_chinese = chinese_chars > len(main_text) * 0.3
-    
-    font_type = font_config.get('type', 'auto')
-    if font_type == 'auto':
-        font_path = font_cn if is_chinese else font_en
-        font_index = font_index_cn if is_chinese else font_index_en
-    elif font_type == 'chinese':
-        font_path = font_cn
-        font_index = font_index_cn
-    else:
-        font_path = font_en
-        font_index = font_index_en
-    
-    start_size = font_config.get('size', 72)
-    min_size = font_config.get('min_size', 42)
+    start_size = font_config.get('size', 96)
+    min_size = font_config.get('min_size', 48)
     line_spacing = field_config.get('line_spacing', 40)
     color = get_color(config, field_config.get('color', 'text'))
     align = field_config.get('align', 'left')
@@ -365,53 +346,30 @@ def main():
     ap.add_argument("--bg", required=True, help="Paper texture background png/jpg")
     ap.add_argument("--out", required=True, help="Output frames directory")
     ap.add_argument("--config", required=True, help="YAML configuration file")
-    ap.add_argument("--font-cn", help="Chinese font .ttf/.ttc (overrides config)")
-    ap.add_argument("--font-en", help="English font .ttf/.ttc (overrides config)")
-    ap.add_argument("--font-index-cn", type=int, help="Chinese font index (overrides config)")
-    ap.add_argument("--font-index-en", type=int, help="English font index (overrides config)")
+    ap.add_argument("--font", help="Font .ttf/.ttc (overrides config)")
+    ap.add_argument("--font-index", type=int, help="Font index (overrides config)")
     args = ap.parse_args()
 
     # Load configuration
     config = load_config(args.config)
     
-    # Override font paths from command line if provided
-    if args.font_cn:
+    # Override font path from command line if provided
+    if args.font:
         if 'fonts' not in config:
             config['fonts'] = {}
-        if 'chinese' not in config['fonts']:
-            config['fonts']['chinese'] = {}
-        config['fonts']['chinese']['path'] = args.font_cn
+        config['fonts']['path'] = args.font
     
-    if args.font_en:
+    if args.font_index is not None:
         if 'fonts' not in config:
             config['fonts'] = {}
-        if 'english' not in config['fonts']:
-            config['fonts']['english'] = {}
-        config['fonts']['english']['path'] = args.font_en
+        config['fonts']['index'] = args.font_index
     
-    if args.font_index_cn is not None:
-        if 'fonts' not in config:
-            config['fonts'] = {}
-        if 'chinese' not in config['fonts']:
-            config['fonts']['chinese'] = {}
-        config['fonts']['chinese']['index'] = args.font_index_cn
-    
-    if args.font_index_en is not None:
-        if 'fonts' not in config:
-            config['fonts'] = {}
-        if 'english' not in config['fonts']:
-            config['fonts']['english'] = {}
-        config['fonts']['english']['index'] = args.font_index_en
-    
-    # Validate required font paths
+    # Validate required font path
     fonts_config = config.get('fonts', {})
-    font_cn = fonts_config.get('chinese', {}).get('path', '')
-    font_en = fonts_config.get('english', {}).get('path', '')
+    font_path = fonts_config.get('path', '')
     
-    if not font_cn:
-        raise ValueError("Chinese font path must be set in config file or via --font-cn")
-    if not font_en:
-        raise ValueError("English font path must be set in config file or via --font-en")
+    if not font_path:
+        raise ValueError("Font path must be set in config file or via --font")
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
