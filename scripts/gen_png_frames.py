@@ -32,6 +32,17 @@ def get_field_config(config: Dict[str, Any], field_name: str) -> Dict[str, Any]:
     fields = config.get('fields', {})
     return fields.get(field_name, {})
 
+def get_field_mapping(config: Dict[str, Any], csv_field_name: str) -> str:
+    """Get the configuration field name for a CSV column name."""
+    field_mapping = config.get('field_mapping', {})
+    return field_mapping.get(csv_field_name, csv_field_name)
+
+def has_field_config(config: Dict[str, Any], field_name: str) -> bool:
+    """Check if a field has configuration (layout and fields)."""
+    layout = config.get('layout', {})
+    fields = config.get('fields', {})
+    return field_name in layout and field_name in fields
+
 def load_font(font_path: str, size: int, index: int = 0) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(font_path, size=size, index=index)
 
@@ -194,7 +205,68 @@ def draw_lines(img, box, lines, font, fill, align="left", line_spacing=10):
         draw.text((xx, yy), line, font=font, fill=fill)
         yy += line_h
 
-def render_one(row: dict, bg_path: str, config: Dict[str, Any]) -> Image.Image:
+def render_field(draw, bg, row: dict, csv_field_name: str, config: Dict[str, Any], 
+                 font_path: str, font_index: int) -> None:
+    """Render a single field based on CSV column name and configuration."""
+    # Get the configuration field name (may be mapped)
+    config_field_name = get_field_mapping(config, csv_field_name)
+    
+    # Check if this field has configuration
+    if not has_field_config(config, config_field_name):
+        return
+    
+    # Get field value from CSV row
+    field_value = (row.get(csv_field_name, "") or "").strip()
+    
+    # Special handling for date field -> year extraction
+    if csv_field_name == "date" and config_field_name == "year":
+        try:
+            year = field_value.split("-")[0]
+            if year and len(year) == 4:
+                field_value = year
+            else:
+                return
+        except (IndexError, ValueError):
+            return
+    
+    # Skip if field value is empty
+    if not field_value:
+        return
+    
+    # Get field configuration
+    field_config = get_field_config(config, config_field_name)
+    box = get_box(config, config_field_name)
+    color = get_color(config, field_config.get('color', 'header'))
+    align = field_config.get('align', 'left')
+    line_spacing = field_config.get('line_spacing', 10)
+    font_config = field_config.get('font', {})
+    
+    # Check if this field supports auto-fit (has min_size)
+    min_size = font_config.get('min_size')
+    
+    if min_size is not None:
+        # Auto-fit text field (like main_text, horoscope)
+        _, _, w, h = box
+        start_size = font_config.get('size', 72)
+        
+        font, lines = fit_text_in_box(
+            draw, field_value, font_path=font_path, font_index=font_index,
+            box_w=w, box_h=h,
+            start_size=start_size, min_size=min_size,
+            line_spacing=line_spacing
+        )
+    else:
+        # Fixed size field
+        font_size = font_config.get('size', 40)
+        font = load_font(font_path, font_size, font_index)
+        
+        def as_lines(s): return [str(s or "").strip()]
+        lines = as_lines(field_value)
+    
+    # Draw the field
+    draw_lines(bg, box, lines, font, color, align=align, line_spacing=line_spacing)
+
+def render_one(row: dict, csv_headers: list, bg_path: str, config: Dict[str, Any]) -> Image.Image:
     """Render a single calendar frame based on row data and configuration."""
     # Get canvas dimensions
     canvas = config.get('canvas', {})
@@ -211,132 +283,11 @@ def render_one(row: dict, bg_path: str, config: Dict[str, Any]) -> Image.Image:
     
     bg = Image.open(bg_path).convert("RGB").resize((W, H))
     draw = ImageDraw.Draw(bg)
-
-    def as_lines(s): return [str(s or "").strip()]
     
-    def get_font(field_name: str):
-        """Get font for a field based on configuration."""
-        field_config = get_field_config(config, field_name)
-        font_config = field_config.get('font', {})
-        font_size = font_config.get('size', 40)
-        return load_font(font_path, font_size, font_index)
-
-    # Draw large day number in top-left
-    day = str(row.get("day","") or "").strip()
-    if day:
-        field_config = get_field_config(config, 'day_big')
-        box = get_box(config, 'day_big')
-        color = get_color(config, field_config.get('color', 'header'))
-        align = field_config.get('align', 'center')
-        line_spacing = field_config.get('line_spacing', 0)
-        font = get_font('day_big')
-        draw_lines(bg, box, [day], font, color, align=align, line_spacing=line_spacing)
-
-    # Draw month info in top-right
-    month = (row.get("month","") or "").strip()
-    if month:
-        field_config = get_field_config(config, 'month')
-        box = get_box(config, 'month')
-        color = get_color(config, field_config.get('color', 'header'))
-        align = field_config.get('align', 'right')
-        line_spacing = field_config.get('line_spacing', 10)
-        font = get_font('month')
-        draw_lines(bg, box, as_lines(month), font, color, align=align, line_spacing=line_spacing)
-
-    # Draw weekday
-    weekday = (row.get('weekday','') or '').strip()
-    if weekday:
-        field_config = get_field_config(config, 'weekday')
-        box = get_box(config, 'weekday')
-        color = get_color(config, field_config.get('color', 'header'))
-        align = field_config.get('align', 'right')
-        line_spacing = field_config.get('line_spacing', 10)
-        font = get_font('weekday')
-        draw_lines(bg, box, as_lines(weekday), font, color, align=align, line_spacing=line_spacing)
-
-    # Draw constellation
-    constellation = (row.get("constellation","") or "").strip()
-    if constellation:
-        field_config = get_field_config(config, 'constellation')
-        box = get_box(config, 'constellation')
-        color = get_color(config, field_config.get('color', 'header'))
-        align = field_config.get('align', 'right')
-        line_spacing = field_config.get('line_spacing', 10)
-        font = get_font('constellation')
-        draw_lines(bg, box, as_lines(constellation), font, color, align=align, line_spacing=line_spacing)
-
-    # Draw year in center-top
-    date_str = (row.get("date","") or "").strip()
-    if date_str:
-        # Extract year from date string (format: YYYY-MM-DD)
-        try:
-            year = date_str.split("-")[0]
-            if year and len(year) == 4:
-                field_config = get_field_config(config, 'year')
-                box = get_box(config, 'year')
-                color = get_color(config, field_config.get('color', 'header'))
-                align = field_config.get('align', 'right')
-                line_spacing = field_config.get('line_spacing', 0)
-                font = get_font('year')
-                year_lines = as_lines(year)
-                draw_lines(bg, box, year_lines, font, color, align=align, line_spacing=line_spacing)
-        except (IndexError, ValueError):
-            pass
-
-    # Draw horoscope/daily fortune
-    horoscope = (row.get("horoscope","") or row.get("daily_fortune","") or "").strip()
-    if horoscope:
-        field_config = get_field_config(config, 'horoscope')
-        box = get_box(config, 'horoscope')
-        _, _, w, h = box
-        color = get_color(config, field_config.get('color', 'header'))
-        align = field_config.get('align', 'left')
-        line_spacing = field_config.get('line_spacing', 20)
-        font_config = field_config.get('font', {})
-        
-        start_size = font_config.get('size', 56)
-        min_size = font_config.get('min_size', 36)
-        
-        horoscope_font, horoscope_lines = fit_text_in_box(
-            draw, horoscope, font_path=font_path, font_index=font_index,
-            box_w=w, box_h=h,
-            start_size=start_size, min_size=min_size,
-            line_spacing=line_spacing
-        )
-        draw_lines(bg, box, horoscope_lines, horoscope_font, color, align=align, line_spacing=line_spacing)
-
-    # Main long text: wrap + auto-fit
-    box = get_box(config, 'main_text')
-    _, _, w, h = box
-    main_text = (row.get("main_text","") or "").strip()
+    # Render all fields dynamically based on CSV headers
+    for csv_field_name in csv_headers:
+        render_field(draw, bg, row, csv_field_name, config, font_path, font_index)
     
-    field_config = get_field_config(config, 'main_text')
-    font_config = field_config.get('font', {})
-    
-    start_size = font_config.get('size', 96)
-    min_size = font_config.get('min_size', 48)
-    line_spacing = field_config.get('line_spacing', 40)
-    color = get_color(config, field_config.get('color', 'text'))
-    align = field_config.get('align', 'left')
-    
-    main_font, main_lines = fit_text_in_box(
-        draw, main_text, font_path=font_path, font_index=font_index,
-        box_w=w, box_h=h,
-        start_size=start_size, min_size=min_size,
-        line_spacing=line_spacing
-    )
-    draw_lines(bg, box, main_lines, main_font, color, align=align, line_spacing=line_spacing)
-
-    footer = (row.get("footer","") or "").strip()
-    if footer:
-        field_config = get_field_config(config, 'footer')
-        box = get_box(config, 'footer')
-        color = get_color(config, field_config.get('color', 'header'))
-        align = field_config.get('align', 'center')
-        line_spacing = field_config.get('line_spacing', 10)
-        font = get_font('footer')
-        draw_lines(bg, box, [footer], font, color, align=align, line_spacing=line_spacing)
-
     return bg
 
 def main():
@@ -375,13 +326,17 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with open(args.csv, "r", encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f))
+        reader = csv.DictReader(f)
+        csv_headers = reader.fieldnames
+        if not csv_headers:
+            raise ValueError("CSV file has no headers")
+        rows = list(reader)
 
     for i, row in enumerate(rows, 1):
         date = (row.get("date") or "").strip()
         if not date:
             raise ValueError(f"Row {i} missing 'date'")
-        img = render_one(row, args.bg, config)
+        img = render_one(row, csv_headers, args.bg, config)
         img.save(out_dir / f"{date}.png", "PNG")
         print(f"[{i}/{len(rows)}] {date}.png")
 
